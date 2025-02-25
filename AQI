@@ -1,0 +1,304 @@
+Skip to main content
+Air Quality Forecasting using ML.ipynb
+Air Quality Forecasting using ML.ipynb_
+
+[110]
+5s
+!pip install numpy
+!pip install pandas
+Requirement already satisfied: numpy in /usr/local/lib/python3.11/dist-packages (1.26.4)
+Requirement already satisfied: pandas in /usr/local/lib/python3.11/dist-packages (2.2.2)
+Requirement already satisfied: numpy>=1.23.2 in /usr/local/lib/python3.11/dist-packages (from pandas) (1.26.4)
+Requirement already satisfied: python-dateutil>=2.8.2 in /usr/local/lib/python3.11/dist-packages (from pandas) (2.8.2)
+Requirement already satisfied: pytz>=2020.1 in /usr/local/lib/python3.11/dist-packages (from pandas) (2025.1)
+Requirement already satisfied: tzdata>=2022.7 in /usr/local/lib/python3.11/dist-packages (from pandas) (2025.1)
+Requirement already satisfied: six>=1.5 in /usr/local/lib/python3.11/dist-packages (from python-dateutil>=2.8.2->pandas) (1.17.0)
+Importing the Dependencies
+
+
+[50]
+import numpy as np
+import pandas as pd
+Data Collection and Processing
+
+
+[51]
+# Converting the CSV file into pandas dataframe
+air_quality_data = pd.read_csv('/content/AirQualityUCI.csv', sep = ';', decimal = ',')
+
+[52]
+0s
+# Print the rows in dataframe
+air_quality_data.head(10)
+
+
+[53]
+#Removing the unwanted column from dataframe
+air_quality_data = air_quality_data.iloc [:, :-2]
+
+[55]
+0s
+# Print the rows in dataframe
+air_quality_data.head(10)
+
+
+[56]
+0s
+# Print the last 10 rows in dataframe
+air_quality_data.tail(10)
+
+
+[57]
+0s
+# Check the total numbers of rows and column
+air_quality_data.shape
+(9470, 15)
+
+[58]
+0s
+# Access specific rows and columns
+air_quality_data.loc[[9357]]
+
+Total number of rows - 9471, Total number of null value rows - 115
+
+9356 row of file represent last data point in the dataframe and remaining rows are null values.
+
+
+[59]
+# Display only the first 9356 rows, as rows beyond these include null values
+air_quality_data=air_quality_data.head(9356)
+
+[60]
+0s
+# Print the last 5 rows in dataframe
+air_quality_data.tail(5)
+
+
+[61]
+0s
+# Getting some info about the data
+air_quality_data.info()
+<class 'pandas.core.frame.DataFrame'>
+RangeIndex: 9356 entries, 0 to 9355
+Data columns (total 15 columns):
+ #   Column         Non-Null Count  Dtype  
+---  ------         --------------  -----  
+ 0   Date           9356 non-null   object 
+ 1   Time           9356 non-null   object 
+ 2   CO(GT)         9356 non-null   float64
+ 3   PT08.S1(CO)    9356 non-null   float64
+ 4   NMHC(GT)       9356 non-null   float64
+ 5   C6H6(GT)       9356 non-null   float64
+ 6   PT08.S2(NMHC)  9356 non-null   float64
+ 7   NOx(GT)        9356 non-null   float64
+ 8   PT08.S3(NOx)   9356 non-null   float64
+ 9   NO2(GT)        9356 non-null   float64
+ 10  PT08.S4(NO2)   9356 non-null   float64
+ 11  PT08.S5(O3)    9356 non-null   float64
+ 12  T              9356 non-null   float64
+ 13  RH             9356 non-null   float64
+ 14  AH             9356 non-null   float64
+dtypes: float64(13), object(2)
+memory usage: 1.1+ MB
+
+[62]
+0s
+# Another way to check the null value in dataframe
+air_quality_data.isnull().sum() # It represent the number of null value in each column
+
+This represent that there are no missing values in in the dataframe.
+
+
+[63]
+0s
+#Counting the number of times -200 appears in the data
+air_quality_data.isin([-200]).sum(axis=0)#It represent whether -200 appears in a particular coloumn
+
+Handling the null value
+
+
+[64]
+# Convert all -200 to NaN
+air_quality_data = air_quality_data.replace(to_replace=-200,value = np.NaN)
+
+[65]
+0s
+#Counting the number of times -200 appears in the data
+air_quality_data.isin([-200]).sum(axis=0)
+
+This shows the actual number of missing value
+
+
+[66]
+0s
+# Print the last 5 rows in dataframe
+air_quality_data.tail(5)
+
+
+[67]
+# Remove the 'Date' and 'Time' columns
+air_quality_data = air_quality_data.drop(columns=['Date', 'Time'])
+
+[68]
+0s
+# Calculate the mean for the remaining numeric columns
+numeric_columns = air_quality_data.select_dtypes(include=np.number).columns
+air_quality_data[numeric_columns].mean()
+
+
+[69]
+#Replacing the null value
+air_quality_data = air_quality_data.fillna(air_quality_data.mean())#The fillna()method replaces the null values with a specified value.
+
+[70]
+0s
+# Print the last 5 rows in dataframe
+air_quality_data.tail(5)
+
+Forecasing with FB Prophet ML model / Algorithm
+
+FB Prophet documentation - https://facebook.github.io/prophet/docs/quick_start.html (It represent about how to use this model)
+
+Step - 1 : Insert Date & Time into existed dataset and convert it to format expected by Pandas, ideally YYYY-MM-DD for a date or YYYY-MM-DD HH:MM:SS for a timestamp
+
+
+[71]
+date_time_data = pd.read_csv("/content/date_time_data.csv")
+
+[72]
+0s
+print(date_time_data.head())
+         Date      Time
+0  03-10-2004  18:00:00
+1  03-10-2004  19:00:00
+2  03-10-2004  20:00:00
+3  03-10-2004  21:00:00
+4  03-10-2004  22:00:00
+
+[73]
+# This merges 'Date' and 'Time', then converts to a datetime format with DD/MM/YYYY handling errors safely
+date_time_data['DateTime'] = pd.to_datetime(date_time_data['Date'] + " " + date_time_data['Time'], dayfirst=True, errors='coerce')
+
+[75]
+0s
+# Check the total numbers of rows and column
+air_quality_data.shape
+(9356, 13)
+
+[76]
+0s
+date_time_data.shape
+(9356, 3)
+
+[77]
+#This inserts the 'DateTime' column from date_time_data as the first column in air_quality_data
+air_quality_data.insert(0, 'DateTime', date_time_data['DateTime'].values)
+
+[78]
+0s
+# Check the total numbers of rows and column
+air_quality_data.shape
+(9356, 14)
+
+[79]
+0s
+# Print the rows in dataframe
+air_quality_data.head(10)
+
+
+[80]
+# We are creating a DataFrame with the required columns, as the model expects this structure
+data = pd.DataFrame()
+
+[82]
+#If using FB Prophet (a time-series forecasting library), 'ds' is the required column name for timestamps.
+data['ds'] = air_quality_data['DateTime']
+
+[83]
+0s
+data.head()
+
+
+[84]
+#If using Prophet for time-series forecasting, 'y' represents the target variable (the value to predict)
+data ['y'] = air_quality_data['RH']
+
+[86]
+0s
+data.head()
+
+
+[102]
+0s
+#To install Prophet model
+!pip instal prophet
+ERROR: unknown command "instal" - maybe you meant "install"
+
+[104]
+#This imports the Prophet class from the prophet library, allowing you to create and train a time-series forecasting model
+from prophet import Prophet
+
+[103]
+0s
+#Check for Missing Values in "ds" Column
+print("NaN values in 'ds':", data['ds'].isnull().sum())
+NaN values in 'ds': 0
+
+[105]
+#Drop Rows with Missing Dates (Recommended)
+data = data.dropna(subset=['ds'])
+
+[106]
+#Ensure "ds" is in Correct DateTime Format
+data['ds'] = pd.to_datetime(data['ds'], errors='coerce')  # errors='coerce' ensures that invalid values are converted to NaT (Not a Time) instead of causing errors.
+
+[107]
+0s
+#Check for NaN Again
+print("After fixing, NaN values in 'ds':", data['ds'].isnull().sum())
+After fixing, NaN values in 'ds': 0
+
+[108]
+#Training the Prophet model
+
+model = Prophet() #Prophet() → Creates a Prophet model instance
+model.fit(data) # .fit(data) → Trains the model using the data DataFrame
+INFO:prophet:Disabling yearly seasonality. Run prophet with yearly_seasonality=True to override this.
+DEBUG:cmdstanpy:input tempfile: /tmp/tmp02vjs9qv/w4i727j1.json
+DEBUG:cmdstanpy:input tempfile: /tmp/tmp02vjs9qv/c2kkg6zm.json
+DEBUG:cmdstanpy:idx 0
+DEBUG:cmdstanpy:running CmdStan, num_threads: None
+DEBUG:cmdstanpy:CmdStan args: ['/usr/local/lib/python3.11/dist-packages/prophet/stan_model/prophet_model.bin', 'random', 'seed=1344', 'data', 'file=/tmp/tmp02vjs9qv/w4i727j1.json', 'init=/tmp/tmp02vjs9qv/c2kkg6zm.json', 'output', 'file=/tmp/tmp02vjs9qv/prophet_modelm8oropf9/prophet_model-20250225052612.csv', 'method=optimize', 'algorithm=lbfgs', 'iter=10000']
+05:26:12 - cmdstanpy - INFO - Chain [1] start processing
+INFO:cmdstanpy:Chain [1] start processing
+05:26:13 - cmdstanpy - INFO - Chain [1] done processing
+INFO:cmdstanpy:Chain [1] done processing
+<prophet.forecaster.Prophet at 0x7d0d1d3b9110>
+
+[96]
+0s
+#This creates future timestamps for 365 hours ahead and shows the last few rows.
+future = model.make_future_dataframe(periods=365, freq = 'H')
+future.tail()
+
+
+[97]
+0s
+#This predicts future values and shows the last few results, including the predicted value (yhat) and its confidence range.
+forecast = model.predict(future)
+forecast[['ds', 'yhat', 'yhat_lower', 'yhat_upper']].tail()
+
+
+[98]
+0s
+#Generates a plot of the forecasted values
+fig1 = model.plot(forecast)
+
+
+[99]
+1s
+# This shows trend and seasonality in the forecast
+fig2 = model.plot_components(forecast)
+
+Colab paid products - Cancel contracts here
+Connected to Python 3 Google Compute Engine backend
